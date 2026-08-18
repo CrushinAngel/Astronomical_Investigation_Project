@@ -1,0 +1,29 @@
+# (2026-08-18 03:48:38.355)
+
+spectrum.fit_redshift(**{'file': 'aurora-gdn02-v4_g395m-f290lp_1914_931951.spec.fits', 'z0': [2.3832, 2.5832], 'zstep': None, 'nspline': None, 'scale_disp': 1.3, 'vel_width': 100, 'Rline': None, 'is_prism': False, 'use_full_dispersion': False, 'ranges': None, 'sys_err': 0.02, 'kwargs': {}, 'froot': 'aurora-gdn02-v4_g395m-f290lp_1914_931951'})
+
+load_sensitivity_curve: msaexp_sensitivity_g395m_f290lp_001.fits
+load_sensitivity_curve: msaexp_sensitivity_g395m_f290lp_001.fits
+load_sensitivity_curve: msaexp_sensitivity_g395m_f290lp_001.fits
+
+# line flux err
+# flux x 10^-20 erg/s/cm2
+# aurora-gdn02-v4_g395m-f290lp_1914_931951.spec.fits
+# z = 2.48326
+# Mon Aug 17 23:48:44 2026
+     line ArIII-7753      882.6 ±   1414.0 (EW=  -1009.9)
+       line HeI-8446        0.0 ±      0.0 (EW=     -0.0)
+           line Pa10       11.1 ±      8.1 (EW=     16.2)
+      line SIII-9068       70.7 ±      8.4 (EW=    101.5)
+            line Pa9       13.5 ±      7.4 (EW=     19.9)
+      line SIII-9531      189.9 ±      9.1 (EW=    301.1)
+            line Pa8       29.7 ±      7.2 (EW=     47.0)
+        line CI-9850       -7.2 ±      6.8 (EW=    -11.5)
+            line PaD       20.4 ±      6.9 (EW=     34.2)
+       line HeI-1083      134.4 ±      7.3 (EW=    286.7)
+            line PaG       50.3 ±      7.4 (EW=    109.8)
+     line FeII-11128       -2.6 ±      6.4 (EW=     -5.6)
+      line PII-11886        4.7 ±      6.8 (EW=     11.2)
+     line FeII-12570        3.6 ±      7.4 (EW=      9.3)
+            line PaB       86.6 ±      7.6 (EW=    219.5)
+

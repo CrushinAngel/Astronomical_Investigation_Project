@@ -1,0 +1,36 @@
+# Mon Aug 17 23:48:38 2026
+# /mnt/c/Users/nicol/Desktop/Proyecto_Astronomico/Astronomical_Investigation_Project/notebooks
+Rline: null
+file: aurora-gdn02-v4_g395m-f290lp_1914_931951.spec.fits
+froot: aurora-gdn02-v4_g395m-f290lp_1914_931951
+is_prism: false
+kwargs: {}
+nspline: null
+ranges: null
+scale_disp: 1.300000
+sys_err: 0.020000
+use_full_dispersion: false
+vel_width: 100
+z0:
+- !!python/object/apply:numpy.core.multiarray.scalar
+  - &id001 !!python/object/apply:numpy.dtype
+    args:
+    - f8
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - -1
+    - -1
+    - 0
+  - !!binary |
+    G55eKcsQA0A=
+- !!python/object/apply:numpy.core.multiarray.scalar
+  - *id001
+  - !!binary |
+    tTf4wmSqBEA=
+zstep: null
