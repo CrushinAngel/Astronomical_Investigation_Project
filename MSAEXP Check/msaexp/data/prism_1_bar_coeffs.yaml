@@ -1,0 +1,17 @@
+# empirical-bar-shadow.ipynb
+# Determined from background shutters DD-2750
+coeffs:
+- 0.17469
+- 0.15504
+- 0.43337
+- 0.93953
+- 1.00119
+- 0.99776
+- 1.00788
+- 0.95924
+- 0.57975
+- 0.16163
+- 0.20944
+minmax:
+- -0.55000
+- 0.55000
