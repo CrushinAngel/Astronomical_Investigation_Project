@@ -1272,7 +1272,6 @@ GRATING_COLORS = {
 
 def get_spectra(file="smacs0723-ero-v4_g395m-f290lp_2736_6355.spec.fits", ny=8, log_steps=True, wave_limits=None, renorm=True, extra="", spline_step=64, gratings=[], trim_empty_axes=True, grating_colors=GRATING_COLORS, method = 'list', **kwargs):
 
-    from astropy.io import fits
     from astropy import units as u
     from specutils import Spectrum
     from astropy.nddata import StdDevUncertainty
@@ -1311,12 +1310,18 @@ def get_spectra(file="smacs0723-ero-v4_g395m-f290lp_2736_6355.spec.fits", ny=8, 
         uncertainty = StdDevUncertainty(
            specdata["full_err"]
         )
+        negative_mask =~ specdata['valid']
 
         spec = Spectrum(
             spectral_axis = lamb, 
             flux = flux, 
             uncertainty = uncertainty,
-            meta = {'z': z}
+            mask = negative_mask,
+            meta = {
+                "z": z,
+                "grating": row["grating"],
+                "filter": row["filter"],
+            }
         )
 
         specs_list.append(spec)
