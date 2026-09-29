@@ -51,6 +51,9 @@ def line_cont_fit(spectrum, line_info):
         center = line_info['rest_AA'][0] * (1+z)
     window = 100 * u.AA  # Provisional window, subject to change
 
+    if line_info['element'] == '1[OIII]4364':
+        window = 60 *u.AA
+
     mask = ((spectrum.spectral_axis >= center - window) & 
             (spectrum.spectral_axis <= center + window))
 
@@ -125,7 +128,7 @@ def line_cont_fit(spectrum, line_info):
 
     ## Plotting!
 
-    f, ax = plt.subplots(figsize = (20, 3))
+    f, ax = plt.subplots(figsize = (10, 3))
 
     ax.plot(wave_masked, flux_masked, color = 'midnightblue')
 
