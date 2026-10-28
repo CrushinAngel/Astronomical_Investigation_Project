@@ -1,7 +1,10 @@
 
+import matplotlib.pyplot as plt
+from astropy import units as u
+import numpy as np
+
 def resampling_spectra(filename):
-    from astropy import units as u
-    import numpy as np
+
     from astropy.visualization import quantity_support
     import msaexp
     quantity_support()  # for getting units on the axes below
@@ -9,7 +12,8 @@ def resampling_spectra(filename):
     specs = msaexp.spectrum.get_spectra(
         file = filename, 
         sx=8, sy=2,
-        ny=4, renorm = False
+        ny=4, renorm = False, 
+        survey = 'AURORA'
     )
 
 
@@ -28,6 +32,12 @@ def resampling_spectra(filename):
 
         resamp = resampler.resample1d(spec, common_wave)
 
+        resamp.meta.update({
+            "root": spec.meta["root"],
+            "srcid": spec.meta["srcid"],
+            "z": spec.meta["z"],
+        })
+
         resampled.append(resamp)
 
     return resampled
@@ -35,8 +45,7 @@ def resampling_spectra(filename):
 
 
 def weighted_average(resampled):
-    from astropy import units as u
-    import numpy as np
+
     from specutils import Spectrum
     from astropy.nddata import InverseVariance, StdDevUncertainty
 
@@ -91,8 +100,82 @@ def weighted_average(resampled):
         flux = combined_flux,
         spectral_axis = resampled[0].spectral_axis.value * 1e4 * u.AA,
         uncertainty = uncertainty, 
-        meta = {'z': resampled[0].meta['z']}
+        meta = {"z": resampled[0].meta["z"],
+                "root": resampled[0].meta["root"],
+                "srcid": resampled[0].meta["srcid"],}
     )
-    # print(z)
 
     return combined_spectrum
+
+def plot_spectrum(combined_spectrum, resampled):
+
+    from pathlib import Path
+
+    root = combined_spectrum.meta["root"]
+    srcid = combined_spectrum.meta["srcid"]
+
+    plot_dir = Path("..") / "figures" / f"{root}_{srcid}"
+    plot_dir.mkdir(parents=True, exist_ok=True)
+
+    colors = ['mediumvioletred', 'lightseagreen', 'lightcoral']
+
+    fig, axes = plt.subplots(3, 1, figsize = (10, 10))
+
+    n = len(combined_spectrum.spectral_axis)
+    cutoff1 = n // 3
+    cutoff2 = 2 * n // 3
+
+    sections = [
+        slice(0, cutoff1),
+        slice(cutoff1, cutoff2),
+        slice(cutoff2, None)
+    ]
+
+    for ax, section in zip(axes, sections):
+
+        ax.plot(
+            combined_spectrum.spectral_axis[section],
+            combined_spectrum.flux[section],
+            c='midnightblue',
+            label='Combined Spectrum'
+        )
+
+        for i, resample in enumerate(resampled):
+            wave = resample.spectral_axis[section]
+            flux = resample.flux[section]
+
+            if np.any(np.isfinite(flux.value)):
+                ax.plot(
+                wave,
+                flux,
+                c=colors[i % len(colors)],
+                label=f'Grating {i+1}',
+                alpha = 0.3
+                )
+                
+                max_flux, min_flux = np.nanmax(flux.value), np.nanmin(flux.value)
+
+                if min_flux < -1.5:
+                    ax.set_ylim(-1.5 * u.uJy, max_flux)
+
+                elif max_flux > 20:
+                    ax.set_ylim(min_flux, 20 * u.uJy)
+                else:
+                    ax.set_ylim(top = max_flux)
+
+        ax.legend()
+
+    fig.suptitle(f'Combined and individual spectrum visualization')
+
+    plt.tight_layout()
+    output_file = plot_dir / f"{root}_{srcid}_vis.png"
+
+    fig.savefig(
+        output_file,
+        dpi=200,
+        bbox_inches="tight"
+    )
+
+    plt.close(fig)
+
+    return
