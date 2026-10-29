@@ -1,4 +1,4 @@
-def line_cont_fit(spectrum, line_info):
+def line_cont_fit(spectrum, resampled, line_info):
     from astropy import units as u
     import numpy as np
     import matplotlib.pyplot as plt
@@ -103,6 +103,52 @@ def line_cont_fit(spectrum, line_info):
     flux_masked = flux_masked[valid]
     flux_err_masked = flux_err_masked[valid]
 
+    # Keep the individual grating spectra in the fitting window
+    grating_spectra = []
+
+    for i, resample in enumerate(resampled):
+        spec_wave = resample.spectral_axis.to(wave_masked.unit)
+        spec_flux = resample.flux
+
+        # Select the same observed-frame window as the averaged spectrum
+        spec_window = (
+            (spec_wave >= left_win * (1 + z)) &
+            (spec_wave <= right_win * (1 + z))
+        )
+
+        if not np.any(spec_window):
+            continue
+
+        # Convert to the same flux units used for the averaged spectrum
+        spec_flux = (
+            spec_flux.to(u.erg / u.cm**2)
+            / spec_wave**2
+            * (3e18 * (u.AA / u.s))
+        )
+
+        # Exclude invalid samples
+        valid_flux = (
+            spec_window &
+            np.isfinite(spec_flux.value)
+        )
+
+        if not np.any(valid_flux):
+            continue
+
+        grating = resample.meta.get("grating", f"Grating {i + 1}")
+        filt = resample.meta.get("filter", "Unknown filter")
+
+        grating_spectra.append((
+            spec_wave[valid_flux],
+            spec_flux[valid_flux],
+            f"{grating} / {filt}"
+        ))
+
+        print(
+            f"{grating} / {filt}: "
+            f"{np.count_nonzero(valid_flux)} finite samples"
+        )
+
     if len(flux_masked) == 0:
         print(
             f"Skipping {line_info['element']}: "
@@ -156,6 +202,17 @@ def line_cont_fit(spectrum, line_info):
 
         f, ax = plt.subplots(figsize = (10, 3))
 
+        for spec_wave, spec_flux, label in grating_spectra:
+            ax.plot(
+                spec_wave.value,
+                spec_flux.value,
+                marker=".",
+                markersize=3,
+                linewidth=0.8,
+                alpha=0.65,
+                label=label
+            )
+
         ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
         ax.scatter([max_wave], [max_amp], c = [colors[0]])
         ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
@@ -165,6 +222,7 @@ def line_cont_fit(spectrum, line_info):
         ax.axvline(center_obs, c = 'crimson', label = 'Line centroid')
         
         ax.minorticks_on()
+        ax.legend()
         ax.set_title('Pre fit state')
         f.savefig(
             plot_dir / f"{line_info['element'][1:]}_pre.png",
@@ -298,6 +356,17 @@ def line_cont_fit(spectrum, line_info):
 
         f, ax = plt.subplots(figsize = (10, 3))
 
+        for spec_wave, spec_flux, label in grating_spectra:
+            ax.plot(
+                spec_wave.value,
+                spec_flux.value,
+                marker=".",
+                markersize=3,
+                linewidth=0.8,
+                alpha=0.65,
+                label=label
+            )
+
         ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
         ax.scatter([max_wave1, max_wave2], [max_amp1, max_amp2], c = [colors[0], colors[1]])
         ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
@@ -311,6 +380,7 @@ def line_cont_fit(spectrum, line_info):
         ax.axvline(center_obs, c = 'crimson', label = 'Line centroid')
         
         ax.minorticks_on()
+        ax.legend()
         ax.set_title('Pre fit state')
         f.savefig(
             plot_dir / f"{line_info['element'][1:]}_pre.png",
@@ -464,6 +534,17 @@ def line_cont_fit(spectrum, line_info):
 
         f, ax = plt.subplots(figsize = (10, 3))
 
+        for spec_wave, spec_flux, label in grating_spectra:
+            ax.plot(
+                spec_wave.value,
+                spec_flux.value,
+                marker=".",
+                markersize=3,
+                linewidth=0.8,
+                alpha=0.65,
+                label=label
+            )
+
         ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
         ax.scatter([max_wave1, max_wave2, max_wave3], [max_amp1, max_amp2, max_amp3], c = [colors[0], colors[1], colors[2]])
         ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
@@ -481,6 +562,7 @@ def line_cont_fit(spectrum, line_info):
         ax.axvline(center_obs, c = 'crimson', label = 'Line centroid')
         
         ax.minorticks_on()
+        ax.legend()
         ax.set_title('Pre fit state')
         f.savefig(
             plot_dir / f"{line_info['element'][1:]}_pre.png",
@@ -717,7 +799,7 @@ def per_object_fits_fluxes(url):
     fluxes = {}
 
     for line in lines:
-        optimal, opterrs = line_cont_fit(averaged, line)
+        optimal, opterrs = line_cont_fit(averaged, resampled, line)
 
         if len(optimal.keys()) == 0 or len(opterrs.keys()) == 0:
             print(f"Skipping {line['element']}: fit unavailable.")
