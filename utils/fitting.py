@@ -63,28 +63,27 @@ def line_cont_fit(spectrum, resampled, line_info):
     flux_masked = spectrum.flux[mask]
     # flux_err_masked = spectrum.uncertainty.represent_as(StdDevUncertainty).array[mask]
 
+    file = open(plot_dir / f'{line_info['element'][1:]}_log.txt', 'w')
+    file.write(f"Line: {line_info['element']} \n")
+    file.write(f"Redshift: {z} \n")
+    file.write(f"Rest window: {left_win} -- {right_win} \n")
+    file.write(f"Observed window: {left_win * (1 + z)} -- {right_win * (1 + z)} \n")
 
-    print(f"\nLine: {line_info['element']}")
-    print(f"Redshift: {z}")
-    print(f"Rest window: {left_win} -- {right_win}")
-    print(f"Observed window: {left_win * (1 + z)} -- {right_win * (1 + z)}")
+    file.write(f"Spectrum range: {spectrum.spectral_axis.min()} -- "
+        f"{spectrum.spectral_axis.max()} \n")
 
-    print(f"Spectrum range: {spectrum.spectral_axis.min()} -- "
-        f"{spectrum.spectral_axis.max()}")
-
-    print(f"Points selected: {len(wave_masked)}")
+    file.write(f"Points selected: {len(wave_masked)} \n")
 
     if len(wave_masked) > 0:
-        print(f"Selected wavelength range: "
-            f"{wave_masked.min()} -- {wave_masked.max()}")
+        file.write(f"Selected wavelength range: "
+            f"{wave_masked.min()} -- {wave_masked.max()} \n")
 
-        print(f"Finite wavelengths: "
-            f"{np.isfinite(wave_masked.value).sum()}")
+        file.write(f"Finite wavelengths: "
+            f"{np.isfinite(wave_masked.value).sum()} \n")
 
-        print(f"Finite fluxes: "
-            f"{np.isfinite(flux_masked.value).sum()}")
+        file.write(f"Finite fluxes: "
+            f"{np.isfinite(flux_masked.value).sum()} \n")
 
-    print('')
 
     
     flux_masked = flux_masked.to(u.erg / u.cm**2) / (wave_masked**2) * (3*1e18 * (u.AA / u.s))  
@@ -144,13 +143,13 @@ def line_cont_fit(spectrum, resampled, line_info):
             f"{grating} / {filt}"
         ))
 
-        print(
+        file.write(
             f"{grating} / {filt}: "
             f"{np.count_nonzero(valid_flux)} finite samples"
         )
 
     if len(flux_masked) == 0:
-        print(
+        file.write(
             f"Skipping {line_info['element']}: "
             "no valid flux measurements in the fitting window."
         )
@@ -164,7 +163,7 @@ def line_cont_fit(spectrum, resampled, line_info):
         wave_lims = wave_valid[line_mask]
 
         if len(line_profile) < 5:
-            print(f"No valid samples around {rest_AA} Å.")
+            file.write(f"No valid samples around {rest_AA} Å.")
             return [line_mask, np.nan, np.nan]
     
         max_idx = np.argmax(line_profile)
@@ -191,7 +190,7 @@ def line_cont_fit(spectrum, resampled, line_info):
         line_mask, max_amp, max_wave = max_amplitude(line_info['rest_AA'])
 
         if not np.isfinite(max_amp) or not np.isfinite(max_wave):
-            print(f"Skipping {line_info['element']}: cannot initialize line fit.")
+            file.write(f"Skipping {line_info['element']}: cannot initialize line fit.")
             return {}, {}
 
         initial = [np.median(flux_masked.value), # The median of the flux as a guess for the intercept
@@ -199,37 +198,6 @@ def line_cont_fit(spectrum, resampled, line_info):
                     line_info['sigma'],                          # Sigma, assuming most of the lines aren't broad components
                     line_info['rest_AA'].value * (1 + z),              # Rest in AA * (redshift correction since the wave array is observed)
                     line_info['sigma'] * np.sqrt(2*np.pi) * max_amp]       # Then the expected flux, not amplitude
-
-        f, ax = plt.subplots(figsize = (10, 3))
-
-        for spec_wave, spec_flux, label in grating_spectra:
-            ax.plot(
-                spec_wave.value,
-                spec_flux.value,
-                marker=".",
-                markersize=3,
-                linewidth=0.8,
-                alpha=0.65,
-                label=label
-            )
-
-        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
-        ax.scatter([max_wave], [max_amp], c = [colors[0]])
-        ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
-                        where = line_mask, color = colors[0], alpha = 0.1,
-                        label = "Masked Region")
-
-        ax.axvline(center_obs, c = 'crimson', label = 'Line centroid')
-        
-        ax.minorticks_on()
-        ax.legend()
-        ax.set_title('Pre fit state')
-        f.savefig(
-            plot_dir / f"{line_info['element'][1:]}_pre.png",
-            dpi=200,
-            bbox_inches="tight"
-        )
-        plt.close(f)
 
         popt, pcov = curve_fit(model1, wave_valid.value, flux_masked.value, p0 = initial, 
                         sigma = flux_err_masked, absolute_sigma = True)
@@ -279,6 +247,18 @@ def line_cont_fit(spectrum, resampled, line_info):
             r'$\sigma =%.2f$' % (sigma, ),
             r'$\mu=%.2f$' % (mu, ),
             r'$F=%.2e$' % (flux, )))
+
+        if len(grating_spectra) > 1:
+            for spec_wave, spec_flux, label in grating_spectra:
+                ax.plot(
+                    spec_wave.value,
+                    spec_flux.value,
+                    marker = "d",
+                    markersize = 1.5,
+                    linewidth = 0.8,
+                    alpha = 0.5,
+                    label=label
+                )
 
         ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
 
@@ -334,6 +314,7 @@ def line_cont_fit(spectrum, resampled, line_info):
             bbox_inches="tight"
         )
         plt.close(f)
+        file.close()
 
         ###############################################################################################
 
@@ -343,7 +324,7 @@ def line_cont_fit(spectrum, resampled, line_info):
         line_mask2, max_amp2, max_wave2 = max_amplitude(line_info['rest_AA'][1])
 
         if not np.isfinite(max_amp1) or not np.isfinite(max_wave1) or not np.isfinite(max_amp2) or not np.isfinite(max_wave2):
-            print(f"Skipping {line_info['element']}: cannot initialize line fit.")
+            file.write(f"Skipping {line_info['element']}: cannot initialize line fit.")
             return {}, {}
 
         initial = [np.median(flux_masked.value), 
@@ -353,41 +334,6 @@ def line_cont_fit(spectrum, resampled, line_info):
                     line_info['sigma'] * np.sqrt(2*np.pi) * max_amp1,
                     line_info['rest_AA'][1].value * (1 + z),
                     line_info['sigma'] * np.sqrt(2*np.pi) * max_amp2]
-
-        f, ax = plt.subplots(figsize = (10, 3))
-
-        for spec_wave, spec_flux, label in grating_spectra:
-            ax.plot(
-                spec_wave.value,
-                spec_flux.value,
-                marker=".",
-                markersize=3,
-                linewidth=0.8,
-                alpha=0.65,
-                label=label
-            )
-
-        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
-        ax.scatter([max_wave1, max_wave2], [max_amp1, max_amp2], c = [colors[0], colors[1]])
-        ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
-                        where = line_mask1, color = colors[0], alpha = 0.1,
-                        label = "Masked Region 1")
-
-        ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
-                        where = line_mask2, color = colors[1], alpha = 0.1, 
-                        label = "Masked Region 2")
-
-        ax.axvline(center_obs, c = 'crimson', label = 'Line centroid')
-        
-        ax.minorticks_on()
-        ax.legend()
-        ax.set_title('Pre fit state')
-        f.savefig(
-            plot_dir / f"{line_info['element'][1:]}_pre.png",
-            dpi=200,
-            bbox_inches="tight"
-        )
-        plt.close(f)
 
         popt, pcov = curve_fit(model2, wave_valid.value, flux_masked.value, p0 = initial, 
                         sigma = flux_err_masked, absolute_sigma = True)
@@ -447,6 +393,18 @@ def line_cont_fit(spectrum, resampled, line_info):
             r'$F 1=%.2e$' % (flux1, ),
             r'$\mu2=%.2f$' % (mu2, ),
             r'$F 2=%.2e$' % (flux2, )))
+
+        if len(grating_spectra) > 1:
+            for spec_wave, spec_flux, label in grating_spectra:
+                ax.plot(
+                    spec_wave.value,
+                    spec_flux.value,
+                    marker = "d",
+                    markersize = 1.5,
+                    linewidth = 0.8,
+                    alpha = 0.5,
+                    label=label
+                )
 
         ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
 
@@ -508,6 +466,7 @@ def line_cont_fit(spectrum, resampled, line_info):
             bbox_inches="tight"
         )
         plt.close(f)
+        file.close()
 
         ###############################################################################################
 
@@ -518,7 +477,7 @@ def line_cont_fit(spectrum, resampled, line_info):
         line_mask3, max_amp3, max_wave3 = max_amplitude(line_info['rest_AA'][2])
 
         if not np.isfinite(max_amp1) or not np.isfinite(max_wave1) or not np.isfinite(max_amp2) or not np.isfinite(max_wave2) or not np.isfinite(max_amp3) or not np.isfinite(max_wave3):
-            print(f"Skipping {line_info['element']}: cannot initialize line fit.")
+            file.write(f"Skipping {line_info['element']}: cannot initialize line fit.")
             return {}, {}
 
         initial = [np.median(flux_masked.value), 
@@ -531,45 +490,6 @@ def line_cont_fit(spectrum, resampled, line_info):
                     line_info['rest_AA'][2].value * (1 + z),
                     line_info['sigma'] * np.sqrt(2*np.pi) * max_amp3]
 
-
-        f, ax = plt.subplots(figsize = (10, 3))
-
-        for spec_wave, spec_flux, label in grating_spectra:
-            ax.plot(
-                spec_wave.value,
-                spec_flux.value,
-                marker=".",
-                markersize=3,
-                linewidth=0.8,
-                alpha=0.65,
-                label=label
-            )
-
-        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
-        ax.scatter([max_wave1, max_wave2, max_wave3], [max_amp1, max_amp2, max_amp3], c = [colors[0], colors[1], colors[2]])
-        ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
-                        where = line_mask1, color = colors[0], alpha = 0.1,
-                        label = "Masked Region 1")
-
-        ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
-                        where = line_mask2, color = colors[1], alpha = 0.1, 
-                        label = "Masked Region 2")
-
-        ax.fill_between(wave_valid, ax.get_ylim()[0], ax.get_ylim()[1], 
-                        where = line_mask3, color = colors[2], alpha = 0.1, 
-                        label = "Masked Region 3")
-
-        ax.axvline(center_obs, c = 'crimson', label = 'Line centroid')
-        
-        ax.minorticks_on()
-        ax.legend()
-        ax.set_title('Pre fit state')
-        f.savefig(
-            plot_dir / f"{line_info['element'][1:]}_pre.png",
-            dpi=200,
-            bbox_inches="tight"
-        )
-        plt.close(f)
 
         popt, pcov = curve_fit(model3, wave_valid.value, flux_masked.value, p0 = initial, 
                                 sigma = flux_err_masked, absolute_sigma = True)
@@ -639,6 +559,18 @@ def line_cont_fit(spectrum, resampled, line_info):
             r'$\mu 3=%.2f$' % (mu3, ),
             r'$F 3=%.2e$' % (flux3, )))
 
+        if len(grating_spectra) > 1:
+            for spec_wave, spec_flux, label in grating_spectra:
+                ax.plot(
+                    spec_wave.value,
+                    spec_flux.value,
+                    marker = "d",
+                    markersize = 1.5,
+                    linewidth = 0.8,
+                    alpha = 0.5,
+                    label=label
+                )
+
         ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
 
         ax.plot(wave_model, flux_model, color = 'darkred', alpha = 0.5, label = 'Best Fit')
@@ -703,6 +635,7 @@ def line_cont_fit(spectrum, resampled, line_info):
             bbox_inches="tight"
         )
         plt.close(f)
+        file.close()
 
         ###############################################################################################
 
@@ -813,11 +746,19 @@ def per_object_fits_fluxes(url):
             elif optimal['lines'] == '3':
                 fluxes[optimal['element']] = [optimal['flux1'] * 1e20, optimal['flux2'] * 1e20, optimal['flux3'] * 1e20]
 
-    return fits, fluxes
+    return averaged, fits, fluxes
 
-def per_object_abundance(fits, fluxes):
+def per_object_abundance(averaged, fits, fluxes):
     import pyneb as pn
     import numpy as np
+
+    from pathlib import Path
+
+    root = averaged.meta["root"]
+    srcid = averaged.meta["srcid"]
+
+    z_dir = Path("..") / "abundances" 
+    z_dir.mkdir(parents=True, exist_ok=True)
 
     def has_lines(*keys):
         return all(
@@ -838,6 +779,8 @@ def per_object_abundance(fits, fluxes):
     np.random.seed(1312)
     nrand = 1000
 
+    file = open(z_dir / f"{root}_{srcid}_metallicity.txt", 'w')
+
     if has_lines('[SII]6717, [SII]6731'):
 
         sii6717_stack = fluxes['[SII]6717, [SII]6731'][0] + np.random.normal(0,1,nrand)*fits['[SII]6717, [SII]6731'][1]['flux1']*1e20
@@ -849,9 +792,8 @@ def per_object_abundance(fits, fluxes):
 
         object_dict['s2_den'] = [s2den_16, s2den_50, s2den_84]
 
-        print('Density estimates:')
-        print(s2den_16,s2den_50,s2den_84)
-        print('')
+        file.write('Density estimates:\n')
+        file.write(f'{s2den_16} {s2den_50} {s2den_84}\n')
 
     else: s2_den = 100
 
@@ -870,11 +812,10 @@ def per_object_abundance(fits, fluxes):
             
             object_dict['o2_tem'] = [o2temp_16, o2temp_50, o2temp_84]
 
-            print('Te O+ estimates:')
-            print(o2temp_16,o2temp_50,o2temp_84)
-            print('')
+            file.write('Te O+ estimates:\n')
+            file.write(f'{o2temp_16} {o2temp_50} {o2temp_84}\n')
     else: 
-        print('O+ nebular line measurements unavailable')
+        file.write('O+ nebular line measurements unavailable\n')
 
 
     if (has_lines('Hgamma, [OIII]4364') and has_lines('[OIII]5007')):
@@ -888,9 +829,8 @@ def per_object_abundance(fits, fluxes):
 
         object_dict['o3_tem'] = [o3temp_16, o3temp_50, o3temp_84]
 
-        print('Te O2+ estimates:')
-        print(o3temp_16,o3temp_50,o3temp_84)
-        print('')
+        file.write('Te O2+ estimates:\n')
+        file.write(f'{o3temp_16} {o3temp_50} {o3temp_84} \n')
 
         o2_temp_emp = 0.7 * o3_temp + 3000
         
@@ -898,12 +838,12 @@ def per_object_abundance(fits, fluxes):
     
         object_dict['o2_emp_tem'] = [o2tempemp_16, o2tempemp_50, o2tempemp_84]
     
-        print('Te O+ empirical estimates:')
-        print(o2tempemp_16,o2tempemp_50,o2tempemp_84)
-        print('')
+        file.write('Te O+ empirical estimates:\n')
+        file.write(f'{o2tempemp_16} {o2tempemp_50} {o2tempemp_84} \n')
 
     else: 
-        print('O2+ line measurements unavailable')
+        file.write('O2+ line measurements unavailable\n')
+        file.close()
         return object_dict
 
     
@@ -929,7 +869,7 @@ def per_object_abundance(fits, fluxes):
 
         else:
             o2_abun = None
-            print("O+ abundance unavailable: no usable [OII] lines")
+            file.write("O+ abundance unavailable: no usable [OII] lines\n")
 
 
         object_dict['o3_abun'] = o3_abun
@@ -941,21 +881,24 @@ def per_object_abundance(fits, fluxes):
 
             object_dict['o_abun'] = [o_abun_16, o_abun_50, o_abun_84]
 
-            print(f'Stack has 12+log(O/H) = {12+np.log10(o_abun_50):.2f} ({12+np.log10(o_abun_16):.2f}-{12+np.log10(o_abun_84):.2f})')
+            file.write(f'Stack has 12+log(O/H) = {12+np.log10(o_abun_50):.2f} ({12+np.log10(o_abun_16):.2f}-{12+np.log10(o_abun_84):.2f}) \n')
 
             object_dict['12+log(O/H)'] = [12+np.log10(o_abun_16), 12+np.log10(o_abun_50), 12+np.log10(o_abun_84)]
 
+        file.close()
+
         return object_dict
     else: 
-        print('H beta measurements not available')
+        file.write('H beta measurements not available\n')
+        file.close()
         return object_dict
 
 
 def object_metallicity(url):
 
-    fits, fluxes = per_object_fits_fluxes(url)
+    averaged, fits, fluxes = per_object_fits_fluxes(url)
 
-    object_dict = per_object_abundance(fits, fluxes)
+    object_dict = per_object_abundance(averaged, fits, fluxes)
 
     return object_dict
 
