@@ -1,0 +1,9 @@
+Density estimates:
+nan nan nan
+Te O+ estimates:
+nan nan nan
+Te O2+ estimates:
+nan nan nan 
+Te O+ empirical estimates:
+nan nan nan 
+Stack has 12+log(O/H) = nan (nan-nan) 

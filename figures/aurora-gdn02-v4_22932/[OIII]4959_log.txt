@@ -1,0 +1,10 @@
+Line: 1[OIII]4959 
+Redshift: 3.330159 
+Rest window: 4908.4 Angstrom -- 4993.54 Angstrom 
+Observed window: 21254.152435599997 Angstrom -- 21622.82217286 Angstrom 
+Spectrum range: 5500.0 Angstrom -- 55102.00000000372 Angstrom 
+Points selected: 62 
+Selected wavelength range: 21256.000000001182 Angstrom -- 21622.00000000121 Angstrom 
+Finite wavelengths: 62 
+Finite fluxes: 62 
+g140m / f100lp: 62 finite samplesg235m / f170lp: 62 finite samples

@@ -1,0 +1,10 @@
+Line: 3Halpha, [NII]6548, [NII]6583 
+Redshift: 3.330159 
+Rest window: 6461.06 Angstrom -- 6661.4 Angstrom 
+Observed window: 27977.41710854 Angstrom -- 28844.9211626 Angstrom 
+Spectrum range: 5500.0 Angstrom -- 55102.00000000372 Angstrom 
+Points selected: 144 
+Selected wavelength range: 27982.000000001684 Angstrom -- 28840.000000001743 Angstrom 
+Finite wavelengths: 144 
+Finite fluxes: 144 
+g140m / f100lp: 144 finite samplesg235m / f170lp: 144 finite samplesg395m / f290lp: 144 finite samples

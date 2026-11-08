@@ -248,6 +248,10 @@ def line_cont_fit(spectrum, resampled, line_info):
             r'$\mu=%.2f$' % (mu, ),
             r'$F=%.2e$' % (flux, )))
 
+        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
+
+        plt.autoscale(enable=False, axis='y')
+
         if len(grating_spectra) > 1:
             for spec_wave, spec_flux, label in grating_spectra:
                 ax.plot(
@@ -259,8 +263,6 @@ def line_cont_fit(spectrum, resampled, line_info):
                     alpha = 0.5,
                     label=label
                 )
-
-        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
 
         ax.plot(wave_model, flux_model, color = 'darkred', alpha = 0.5, label = 'Best Fit')
         ax.scatter(max_wave, max_amp, c = colors[0])
@@ -394,6 +396,10 @@ def line_cont_fit(spectrum, resampled, line_info):
             r'$\mu2=%.2f$' % (mu2, ),
             r'$F 2=%.2e$' % (flux2, )))
 
+        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
+
+        plt.autoscale(enable=False, axis='y')
+
         if len(grating_spectra) > 1:
             for spec_wave, spec_flux, label in grating_spectra:
                 ax.plot(
@@ -405,8 +411,6 @@ def line_cont_fit(spectrum, resampled, line_info):
                     alpha = 0.5,
                     label=label
                 )
-
-        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
 
         ax.plot(wave_model, flux_model, color = 'darkred', alpha = 0.5, label = 'Best Fit')
 
@@ -559,6 +563,10 @@ def line_cont_fit(spectrum, resampled, line_info):
             r'$\mu 3=%.2f$' % (mu3, ),
             r'$F 3=%.2e$' % (flux3, )))
 
+        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
+
+        plt.autoscale(enable=False, axis='y')
+
         if len(grating_spectra) > 1:
             for spec_wave, spec_flux, label in grating_spectra:
                 ax.plot(
@@ -570,8 +578,6 @@ def line_cont_fit(spectrum, resampled, line_info):
                     alpha = 0.5,
                     label=label
                 )
-
-        ax.plot(wave_valid, flux_masked, color = 'midnightblue', label = 'Averaged Spectrum')
 
         ax.plot(wave_model, flux_model, color = 'darkred', alpha = 0.5, label = 'Best Fit')
 
