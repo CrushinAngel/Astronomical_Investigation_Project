@@ -7,4 +7,6 @@ Points selected: 183
 Selected wavelength range: 14284.000000000658 Angstrom -- 15376.00000000074 Angstrom 
 Finite wavelengths: 183 
 Finite fluxes: 37 
-g140m / f100lp: 183 finite samplesNo valid samples around 3727.0 Angstrom Å.Skipping 1[OII]3727: cannot initialize line fit.
+g140m / f100lp: 183 finite samples 
+No valid samples around 3727.0 Angstrom Å. 
+Skipping 1[OII]3727: cannot initialize line fit. 

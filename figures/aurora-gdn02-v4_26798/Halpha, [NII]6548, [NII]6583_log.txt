@@ -7,4 +7,8 @@ Points selected: 117
 Selected wavelength range: 22510.000000001273 Angstrom -- 23206.00000000133 Angstrom 
 Finite wavelengths: 117 
 Finite fluxes: 117 
-g140m / f100lp: 117 finite samplesg235m / f170lp: 117 finite samples
+g140m / f100lp: 117 finite samples 
+g235m / f170lp: 117 finite samples 
+SNR1: 162.09550855980072
+SNR2: 60.63358394210345
+SNR2: 116.53987090005042 

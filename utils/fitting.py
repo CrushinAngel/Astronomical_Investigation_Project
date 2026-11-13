@@ -1,3 +1,34 @@
+def gauss(x, mean, sigma, flux):
+    gaussian = flux / (sigma * np.sqrt(2 * np.pi)) * np.exp((-(x - mean)**2) / (2* sigma**2))
+    return gaussian
+
+
+def model1(x, a, b, sigma,
+            mean, flux):
+
+    cont = a + b*x
+
+    return (cont + gauss(x, mean, sigma, flux))
+
+def model2(x, a, b, sigma,
+            mean1, flux1, mean2, flux2):
+
+    cont = a + b*x
+
+    return (cont 
+            + gauss(x, mean1, sigma, flux1)
+            + gauss(x, mean2, sigma, flux2))
+
+def model3(x, a, b, sigma,
+            mean1, flux1, mean2, flux2, mean3, flux3):
+
+    cont = a + b*x
+
+    return (cont 
+            + gauss(x, mean1, sigma, flux1)
+            + gauss(x, mean2, sigma, flux2)
+            + gauss(x, mean3, sigma, flux3))
+
 def line_cont_fit(spectrum, resampled, line_info):
     from astropy import units as u
     import numpy as np
@@ -12,37 +43,6 @@ def line_cont_fit(spectrum, resampled, line_info):
 
     plot_dir = Path("..") / "figures" / f"{root}_{srcid}"
     plot_dir.mkdir(parents=True, exist_ok=True)
-
-    def gauss(x, mean, sigma, flux):
-        gaussian = flux / (sigma * np.sqrt(2 * np.pi)) * np.exp((-(x - mean)**2) / (2* sigma**2))
-        return gaussian
-
-    
-    def model1(x, a, b, sigma,
-               mean, flux):
-
-        cont = a + b*x
-
-        return (cont + gauss(x, mean, sigma, flux))
-
-    def model2(x, a, b, sigma,
-                mean1, flux1, mean2, flux2):
-
-        cont = a + b*x
-
-        return (cont 
-                + gauss(x, mean1, sigma, flux1)
-                + gauss(x, mean2, sigma, flux2))
-
-    def model3(x, a, b, sigma,
-                mean1, flux1, mean2, flux2, mean3, flux3):
-
-        cont = a + b*x
-
-        return (cont 
-                + gauss(x, mean1, sigma, flux1)
-                + gauss(x, mean2, sigma, flux2)
-                + gauss(x, mean3, sigma, flux3))
                 
 
     z = spectrum.meta['z']
@@ -145,13 +145,13 @@ def line_cont_fit(spectrum, resampled, line_info):
 
         file.write(
             f"{grating} / {filt}: "
-            f"{np.count_nonzero(valid_flux)} finite samples"
+            f"{np.count_nonzero(valid_flux)} finite samples \n"
         )
 
     if len(flux_masked) == 0:
         file.write(
             f"Skipping {line_info['element']}: "
-            "no valid flux measurements in the fitting window."
+            "no valid flux measurements in the fitting window. \n"
         )
         return {}, {}
 
@@ -163,7 +163,7 @@ def line_cont_fit(spectrum, resampled, line_info):
         wave_lims = wave_valid[line_mask]
 
         if len(line_profile) < 5:
-            file.write(f"No valid samples around {rest_AA} Å.")
+            file.write(f"No valid samples around {rest_AA} Å. \n")
             return [line_mask, np.nan, np.nan]
     
         max_idx = np.argmax(line_profile)
@@ -190,7 +190,7 @@ def line_cont_fit(spectrum, resampled, line_info):
         line_mask, max_amp, max_wave = max_amplitude(line_info['rest_AA'])
 
         if not np.isfinite(max_amp) or not np.isfinite(max_wave):
-            file.write(f"Skipping {line_info['element']}: cannot initialize line fit.")
+            file.write(f"Skipping {line_info['element']}: cannot initialize line fit. \n")
             return {}, {}
 
         initial = [np.median(flux_masked.value), # The median of the flux as a guess for the intercept
@@ -206,18 +206,31 @@ def line_cont_fit(spectrum, resampled, line_info):
 
         intercept, slope, sigma, mean, flux = popt
 
+        model_errs = np.sqrt(np.diag(pcov))
+        intercept_err, slope_err, sigma_err, mean_err, flux_err = model_errs
+
+        snr = np.abs(flux/flux_err)
+        file.write(f'SNR: {snr}\n')
+
+        if snr < 3:
+            fixed = [sigma, mean]
+            flux, flux_err = refit_flux1(wave_valid.value, flux_masked.value, 
+                              initial, flux_err_masked, fixed)
+            detection = False
+            file.write(f'Upper limit flux: {flux}\n'
+                       f'Upper limit flux_err: {flux_err}\n')
+        else: detection = True
+
         optimal_dict = {
             'element': line_info['element'][1:],
             'lines': line_info['element'][0],
+            'detection': detection,
             'intercept': intercept, 
             'slope': slope, 
             'sigma': sigma, 
             'mean1': mean,
             'flux1': flux,
         }
-
-        model_errs = np.sqrt(np.diag(pcov))
-        intercept_err, slope_err, sigma_err, mean_err, flux_err = model_errs
 
         opterrs_dict = {
             'intercept': intercept_err, 
@@ -344,9 +357,39 @@ def line_cont_fit(spectrum, resampled, line_info):
 
         intercept, slope, sigma, mean1, flux1, mean2, flux2 = popt
 
+        model_errs = np.sqrt(np.diag(pcov))
+        intercept_err, slope_err, sigma_err, mean_err1, flux_err1, mean_err2, flux_err2 = model_errs
+
+        snr1 = np.abs(flux1/flux_err1)
+        snr2 = np.abs(flux2/flux_err2)
+
+        
+        file.write(f'SNR1: {snr1}\n'
+                   f'SNR2: {snr2} \n')
+        detection = np.zeros(2, dtype = bool)
+
+        if snr1 < 3:
+            fixed = [sigma, mean1]
+            flux1, flux_err1 = refit_flux2(wave_valid.value, flux_masked.value, 
+                                         initial, flux_err_masked, fixed, line = 1)
+            detection[0] = False
+            file.write(f'Upper limit flux1: {flux1}\n'
+                       f'Upper limit flux_err1: {flux_err1}\n')
+        else: detection[0] = True
+
+        if snr2 < 3:
+            fixed = [sigma, mean2]
+            flux2, flux_err2 = refit_flux2(wave_valid.value, flux_masked.value, 
+                                         initial, flux_err_masked, fixed, line = 2)
+            detection[1] = False
+            file.write(f'Upper limit flux2: {flux2}\n'
+                       f'Upper limit flux_err2: {flux_err2}\n')
+        else: detection[1] = True
+
         optimal_dict = {
             'element': line_info['element'][1:],
             'lines': line_info['element'][0],
+            'detection': detection,
             'intercept': intercept, 
             'slope': slope, 
             'sigma': sigma, 
@@ -355,9 +398,6 @@ def line_cont_fit(spectrum, resampled, line_info):
             'mean2': mean2,
             'flux2': flux2,
         }
-
-        model_errs = np.sqrt(np.diag(pcov))
-        intercept_err, slope_err, sigma_err, mean_err1, flux_err1, mean_err2, flux_err2 = model_errs
 
         opterrs_dict = {
             'intercept': intercept_err, 
@@ -501,10 +541,49 @@ def line_cont_fit(spectrum, resampled, line_info):
         flux_model = model3(wave_model, *popt)
 
         intercept, slope, sigma, mean1, flux1, mean2, flux2, mean3, flux3 = popt
+
+        model_errs = np.sqrt(np.diag(pcov))
+        intercept_err, slope_err, sigma_err, mean_err1, flux_err1, mean_err2, flux_err2, mean_err3, flux_err3 = model_errs
+
+        snr1 = np.abs(flux1/flux_err1)
+        snr2 = np.abs(flux2/flux_err2)
+        snr3 = np.abs(flux3/flux_err3)
+        file.write(f'SNR1: {snr1}\n' 
+                   f'SNR2: {snr2}\n' 
+                   f'SNR2: {snr3} \n')
+        detection = np.zeros(3, dtype = bool)
+
+        if snr1 < 3:
+            fixed = [sigma, mean1]
+            flux1, flux_err1 = refit_flux3(wave_valid.value, flux_masked.value, 
+                              initial, flux_err_masked, fixed, line = 1)
+            detection[0] = False
+            file.write(f'Upper limit flux1: {flux1}\n'
+                       f'Upper limit flux_err1: {flux_err1}\n')
+        else: detection[0] = True
+
+        if snr2 < 3:
+            fixed = [sigma, mean2]
+            flux2, flux_err2 = refit_flux3(wave_valid.value, flux_masked.value, 
+                              initial, flux_err_masked, fixed, line = 2)
+            detection[1] = False
+            file.write(f'Upper limit flux2: {flux2}\n'
+                       f'Upper limit flux_err2: {flux_err2}\n')
+        else: detection[1] = True
+
+        if snr3 < 3:
+            fixed = [sigma, mean3]
+            flux3, flux_err3 = refit_flux3(wave_valid.value, flux_masked.value, 
+                              initial, flux_err_masked, fixed, line = 3)
+            detection[2] = False
+            file.write(f'Upper limit flux3: {flux3}\n'
+                       f'Upper limit flux_err3: {flux_err3}\n')
+        else: detection[2] = True
     
         optimal_dict = {
             'element': line_info['element'][1:],
             'lines': line_info['element'][0],
+            'detection': detection,
             'intercept': intercept, 
             'slope': slope, 
             'sigma': sigma, 
@@ -515,9 +594,6 @@ def line_cont_fit(spectrum, resampled, line_info):
             'mean3': mean3,
             'flux3': flux3,
         }
-
-        model_errs = np.sqrt(np.diag(pcov))
-        intercept_err, slope_err, sigma_err, mean_err1, flux_err1, mean_err2, flux_err2, mean_err3, flux_err3 = model_errs
 
         opterrs_dict = {
             'intercept': intercept_err, 
@@ -651,6 +727,7 @@ def line_cont_fit(spectrum, resampled, line_info):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import astropy.units as u
+import numpy as np
 
 import os
 import sys
@@ -726,6 +803,228 @@ Oi = {
 }
 
 lines = [Halpha, Hbeta, Oi, Oii, Oiid, Oiii, Oiii1, Oiii2, Sii]
+
+def refit_flux1(wave, flux, initial, fluxerr, fixed):
+    from scipy.optimize import curve_fit
+
+    sigma, mean = fixed
+    intercept0, slope0, _, _, flux0 = initial
+    intial_fixed = [intercept0, slope0, flux0]
+
+    rng = np.random.default_rng(13)
+
+    n_it = 100
+
+    flux_mc = []
+    flux_err_mc = []
+
+    for it in range(n_it):
+
+        flux_per = flux + rng.normal(0, fluxerr)
+
+        try:
+            popt, pcov = curve_fit(
+                lambda x, intercept, slope, flux: model1(x, intercept, slope, 
+                                                         sigma, mean, flux),
+                wave,
+                flux_per,
+                p0 = intial_fixed,
+                sigma = fluxerr,
+                absolute_sigma = True
+            )
+
+            intercept_mc, slope_mc, flux_mc_i = popt
+            err = np.sqrt(np.diag(pcov))
+            flux_err_i = err[2]
+
+            flux_mc.append(flux_mc_i)
+            flux_err_mc.append(flux_err_i)
+
+        except (RuntimeError, ValueError):
+            continue
+
+    flux_mc = np.array(flux_mc)
+    flux_err_mc = np.array(flux_err_mc)
+
+    upper_flux = 3 * np.std(flux_mc, ddof = 1)
+    upper_flux_err = np.median(flux_err_mc)
+
+    return upper_flux, upper_flux_err
+
+def refit_flux2(wave, flux, initial, fluxerr, fixed, line):
+    from scipy.optimize import curve_fit
+
+    sigma, mean = fixed
+    if line == 1:
+        intercept0, slope0, _, _, flux10, mean20, flux20 = initial
+        intial_fixed = [intercept0, slope0, flux10, mean20, flux20]
+    else:
+        intercept0, slope0, _, mean10, flux10, _, flux20 = initial
+        intial_fixed = [intercept0, slope0, mean10, flux10, flux20]
+
+    rng = np.random.default_rng(13)
+
+    n_it = 100
+
+    flux_mc = []
+    flux_err_mc = []
+
+    for it in range(n_it):
+
+        flux_per = flux + rng.normal(0, fluxerr)
+
+        if line == 1:
+            try:
+                popt, pcov = curve_fit(
+                    lambda x, intercept, slope, flux1, mean2, flux2: model2(x, intercept, slope, 
+                                                                            sigma, mean, flux1, mean2, flux2),
+                    wave,
+                    flux_per,
+                    p0 = intial_fixed,
+                    sigma = fluxerr,
+                    absolute_sigma = True
+                )
+
+                intercept_mc, slope_mc, flux_mc_i1, _, _ = popt
+                err = np.sqrt(np.diag(pcov))
+                flux_err_i1 = err[2]
+
+                flux_mc.append(flux_mc_i1)
+                flux_err_mc.append(flux_err_i1)
+
+            except (RuntimeError, ValueError):
+                continue
+
+        else: 
+            try:
+                popt, pcov = curve_fit(
+                    lambda x, intercept, slope, mean1, flux1, flux2: model2(x, intercept, slope, 
+                                                                            sigma, mean1, flux1, mean, flux2),
+                    wave,
+                    flux_per,
+                    p0 = intial_fixed,
+                    sigma = fluxerr,
+                    absolute_sigma = True
+                )
+
+                _, _, _, _, flux_mc_i2 = popt
+                err = np.sqrt(np.diag(pcov))
+                flux_err_i2 = err[4]
+
+                flux_mc.append(flux_mc_i2)
+                flux_err_mc.append(flux_err_i2)
+
+            except (RuntimeError, ValueError):
+                continue
+
+    flux_mc = np.array(flux_mc)
+    flux_err_mc = np.array(flux_err_mc)
+
+    upper_flux = 3 * np.std(flux_mc, ddof = 1)
+    upper_flux_err = np.median(flux_err_mc)
+
+    return upper_flux, upper_flux_err
+
+def refit_flux3(wave, flux, initial, fluxerr, fixed, line):
+    from scipy.optimize import curve_fit
+
+    sigma, mean = fixed
+    if line == 1:
+        intercept0, slope0, _, _, flux10, mean20, flux20, mean30, flux30 = initial
+        intial_fixed = [intercept0, slope0, flux10, mean20, flux20, mean30, flux30]
+
+    elif line == 2:
+        intercept0, slope0, _, mean10, flux10, _, flux20, mean30, flux30 = initial
+        intial_fixed = [intercept0, slope0, flux10, mean20, flux20, mean30, flux30]
+
+    else:
+        intercept0, slope0, _, mean10, flux10, mean20, flux20, _, flux30 = initial
+        intial_fixed = [intercept0, slope0, mean10, flux10, mean20, flux20, flux30]
+
+    rng = np.random.default_rng(13)
+
+    n_it = 100
+
+    flux_mc = []
+    flux_err_mc = []
+
+    for it in range(n_it):
+
+        flux_per = flux + rng.normal(0, fluxerr)
+
+        if line == 1:
+            try:
+                popt, pcov = curve_fit(
+                    lambda x, intercept, slope, flux1, mean2, flux2, mean3, flux3: model3(x, intercept, slope, 
+                                                                            sigma, mean, flux1, mean2, flux2, mean3, flux3),
+                    wave,
+                    flux_per,
+                    p0 = intial_fixed,
+                    sigma = fluxerr,
+                    absolute_sigma = True
+                )
+
+                _, _, flux_mc_i1, _, _, _, _ = popt
+                err = np.sqrt(np.diag(pcov))
+                flux_err_i1 = err[2]
+
+                flux_mc.append(flux_mc_i1)
+                flux_err_mc.append(flux_err_i1)
+
+            except (RuntimeError, ValueError):
+                continue
+
+        elif line == 2: 
+            try:
+                popt, pcov = curve_fit(
+                    lambda x, intercept, slope, mean1, flux1, flux2, mean3, flux3: model3(x, intercept, slope, 
+                                                                            sigma, mean1, flux1, mean, flux2, mean3, flux3),
+                    wave,
+                    flux_per,
+                    p0 = intial_fixed,
+                    sigma = fluxerr,
+                    absolute_sigma = True
+                )
+
+                _, _, _, _, flux_mc_i2, _, _ = popt
+                err = np.sqrt(np.diag(pcov))
+                flux_err_i2 = err[4]
+
+                flux_mc.append(flux_mc_i2)
+                flux_err_mc.append(flux_err_i2)
+
+            except (RuntimeError, ValueError):
+                continue
+
+        else: 
+            try:
+                popt, pcov = curve_fit(
+                    lambda x, intercept, slope, mean1, flux1, mean2, flux2, flux3: model3(x, intercept, slope, 
+                                                                            sigma, mean1, flux1, mean2, flux2, mean, flux3),
+                    wave,
+                    flux_per,
+                    p0 = intial_fixed,
+                    sigma = fluxerr,
+                    absolute_sigma = True
+                )
+
+                _, _, _, _, _, _, flux_mc_i3 = popt
+                err = np.sqrt(np.diag(pcov))
+                flux_err_i3 = err[6]
+
+                flux_mc.append(flux_mc_i3)
+                flux_err_mc.append(flux_err_i3)
+
+            except (RuntimeError, ValueError):
+                continue
+
+    flux_mc = np.array(flux_mc)
+    flux_err_mc = np.array(flux_err_mc)
+
+    upper_flux = 3 * np.std(flux_mc, ddof = 1)
+    upper_flux_err = np.median(flux_err_mc)
+
+    return upper_flux, upper_flux_err
 
 def per_object_fits_fluxes(url):
     resampled = resampling_spectra(url) #For example: "aurora-gdn02-v4_g235m-f170lp_1914_931951.spec.fits"
