@@ -1,4 +1,4 @@
-Line: 1[OII]3727 
+Line: [OII]3727 
 Redshift: 1.382836 
 Rest window: 3576.39 Angstrom -- 3851.5 Angstrom 
 Observed window: 8521.95084204 Angstrom -- 9177.492854 Angstrom 
@@ -7,4 +7,5 @@ Points selected: 109
 Selected wavelength range: 8524.000000000227 Angstrom -- 9172.000000000275 Angstrom 
 Finite wavelengths: 109 
 Finite fluxes: 0 
-g140m / f100lp: 109 finite samplesSkipping 1[OII]3727: no valid flux measurements in the fitting window.
+g140m / f100lp: 109 finite samples 
+Skipping [OII]3727: no valid flux measurements in the fitting window. 

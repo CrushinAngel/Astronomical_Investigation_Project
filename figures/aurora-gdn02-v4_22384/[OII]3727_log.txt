@@ -1,4 +1,4 @@
-Line: 1[OII]3727 
+Line: [OII]3727 
 Redshift: 2.992904766666667 
 Rest window: 3576.39 Angstrom -- 3851.5 Angstrom 
 Observed window: 14280.184678459 Angstrom -- 15378.672708816668 Angstrom 
@@ -9,4 +9,4 @@ Finite wavelengths: 183
 Finite fluxes: 37 
 g140m / f100lp: 183 finite samples 
 No valid samples around 3727.0 Angstrom Å. 
-Skipping 1[OII]3727: cannot initialize line fit. 
+Skipping [OII]3727: cannot initialize line fit. 

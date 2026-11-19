@@ -9,5 +9,5 @@ Finite wavelengths: 173
 Finite fluxes: 173 
 g140m / f100lp: 173 finite samples 
 g235m / f170lp: 173 finite samples 
-SNR1: 8.040417640558854
-SNR2: 6.584888880636324 
+SNR1: 8.040418428657405
+SNR2: 6.584888692297164 

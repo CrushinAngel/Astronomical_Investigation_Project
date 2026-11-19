@@ -1,4 +1,4 @@
-Line: 1[OIII]4959 
+Line: [OIII]4959 
 Redshift: 2.048227 
 Rest window: 4908.4 Angstrom -- 4993.54 Angstrom 
 Observed window: 14961.917406799997 Angstrom -- 15221.44345358 Angstrom 
@@ -7,4 +7,6 @@ Points selected: 44
 Selected wavelength range: 14962.00000000071 Angstrom -- 15220.000000000728 Angstrom 
 Finite wavelengths: 44 
 Finite fluxes: 3 
-g140m / f100lp: 44 finite samplesNo valid samples around 4959.0 Angstrom Å.Skipping 1[OIII]4959: cannot initialize line fit.
+g140m / f100lp: 44 finite samples 
+No valid samples around 4959.0 Angstrom Å. 
+Skipping [OIII]4959: cannot initialize line fit. 
