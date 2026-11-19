@@ -1,0 +1,7 @@
+Line: [OII]7322 
+Redshift: 6.746857600000001 
+Rest window: 7152.79 Angstrom -- 7450.82 Angstrom 
+Observed window: 55411.64557270401 Angstrom -- 57720.44154323201 Angstrom 
+Spectrum range: 5500.0 Angstrom -- 55102.00000000372 Angstrom 
+Points selected: 0 
+Skipping [OII]7322: no valid flux measurements in the fitting window. 
